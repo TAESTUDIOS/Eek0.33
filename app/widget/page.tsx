@@ -1,22 +1,18 @@
 // app/widget/page.tsx
-// Purpose: Widget-optimized page for upcoming tasks. No header, minimal UI for iPhone widgets.
+// Purpose: Widget-optimized page for upcoming appointments. No header, minimal UI for iPhone widgets.
 // This page is accessible without authentication.
 
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAppStore } from "@/lib/store";
-import type { UrgentTodo, Appointment } from "@/lib/types";
+import type { Appointment } from "@/lib/types";
 
 export default function WidgetPage() {
-  const { urgentTodos, loadUrgentTodos, toggleUrgentDone } = useAppStore();
-  const [tab, setTab] = useState<"upcoming" | "urgent">("upcoming");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   useEffect(() => {
-    loadUrgentTodos();
     loadAppointments();
-  }, [loadUrgentTodos]);
+  }, []);
 
   const loadAppointments = async () => {
     try {
@@ -33,42 +29,10 @@ export default function WidgetPage() {
     }
   };
 
-  // Widget content - appointments in upcoming, urgent todos in urgent tab
-  const upcomingUrgent = urgentTodos.filter((t) => !t.done);
-
   return (
     <div className="fixed inset-0 flex flex-col bg-[var(--surface-0)]">
-      {/* Tab navigation */}
-      <div className="flex border-b border-[var(--border)]">
-        <button
-          onClick={() => setTab("upcoming")}
-          className={`flex-1 px-4 py-4 text-base font-medium transition-colors ${
-            tab === "upcoming"
-              ? "border-b-2 border-blue-500 text-blue-500"
-              : "text-[var(--fg)]/60 hover:text-[var(--fg)]"
-          }`}
-        >
-          Upcoming ({appointments.length})
-        </button>
-        <button
-          onClick={() => setTab("urgent")}
-          className={`flex-1 px-4 py-4 text-base font-medium transition-colors ${
-            tab === "urgent"
-              ? "border-b-2 border-red-500 text-red-500"
-              : "text-[var(--fg)]/60 hover:text-[var(--fg)]"
-          }`}
-        >
-          Urgent ({upcomingUrgent.length})
-        </button>
-      </div>
-
-      {/* Content area */}
       <div className="flex-1 overflow-y-auto">
-        {tab === "upcoming" ? (
-          <UpcomingAppointmentsView appointments={appointments} />
-        ) : (
-          <UrgentTodosView todos={upcomingUrgent} onToggle={toggleUrgentDone} />
-        )}
+        <UpcomingAppointmentsView appointments={appointments} />
       </div>
     </div>
   );
@@ -130,62 +94,3 @@ function UpcomingAppointmentsView({ appointments }: { appointments: Appointment[
   );
 }
 
-// Urgent todos view
-function UrgentTodosView({ todos, onToggle }: { todos: UrgentTodo[]; onToggle: (id: string) => void }) {
-  if (todos.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-base text-[var(--fg)]/50">No urgent todos</p>
-      </div>
-    );
-  }
-
-  // Sort by priority: high > medium > low, then by due date
-  const sorted = [...todos].sort((a, b) => {
-    const priorityRank = { high: 0, medium: 1, low: 2 };
-    const rankDiff = priorityRank[a.priority] - priorityRank[b.priority];
-    if (rankDiff !== 0) return rankDiff;
-    const dueA = a.dueAt ?? Infinity;
-    const dueB = b.dueAt ?? Infinity;
-    return dueA - dueB;
-  });
-
-  return (
-    <ul className="divide-y divide-[var(--border)]">
-      {sorted.map((todo) => (
-        <li key={todo.id} className="flex items-center gap-3 px-4 py-4">
-          <button
-            onClick={() => onToggle(todo.id)}
-            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded border-2 border-[var(--fg)]/30 transition-colors hover:border-red-500"
-            aria-label={`Mark ${todo.title} as done`}
-          >
-            {todo.done && (
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 text-red-500">
-                <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clipRule="evenodd" />
-              </svg>
-            )}
-          </button>
-          <div className="flex-1">
-            <p className="text-base text-[var(--fg)]">{todo.title}</p>
-            {todo.dueAt && (
-              <p className="mt-0.5 text-sm text-[var(--fg)]/50">
-                Due: {new Date(todo.dueAt).toLocaleDateString()}
-              </p>
-            )}
-          </div>
-          <span
-            className={`rounded-full px-2.5 py-1 text-sm font-medium ${
-              todo.priority === "high"
-                ? "bg-red-500/20 text-red-400"
-                : todo.priority === "medium"
-                ? "bg-yellow-500/20 text-yellow-400"
-                : "bg-green-500/20 text-green-400"
-            }`}
-          >
-            {todo.priority}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
