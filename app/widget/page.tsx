@@ -42,7 +42,7 @@ export default function WidgetPage() {
       <div className="flex border-b border-[var(--border)]">
         <button
           onClick={() => setTab("upcoming")}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+          className={`flex-1 px-4 py-4 text-base font-medium transition-colors ${
             tab === "upcoming"
               ? "border-b-2 border-blue-500 text-blue-500"
               : "text-[var(--fg)]/60 hover:text-[var(--fg)]"
@@ -52,7 +52,7 @@ export default function WidgetPage() {
         </button>
         <button
           onClick={() => setTab("urgent")}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+          className={`flex-1 px-4 py-4 text-base font-medium transition-colors ${
             tab === "urgent"
               ? "border-b-2 border-red-500 text-red-500"
               : "text-[var(--fg)]/60 hover:text-[var(--fg)]"
@@ -86,10 +86,10 @@ function UpcomingAppointmentsView({ appointments }: { appointments: Appointment[
   return (
     <div className="p-3">
       <div className="rounded-md border border-red-500/20 bg-red-500/5">
-        <div className="flex items-center justify-between px-3 py-2 text-xs">
+        <div className="flex items-center justify-between px-4 py-3 text-sm">
           <div className="flex items-center gap-2 text-[var(--fg)]/80">
             <span className="inline-flex items-center gap-1 font-semibold">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5 text-red-400">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-red-400">
                 <path d="M6.75 3A1.75 1.75 0 0 0 5 4.75v14.5C5 20.216 5.784 21 6.75 21h10.5A1.75 1.75 0 0 0 19 19.25V4.75A1.75 1.75 0 0 0 17.25 3H6.75Zm0 1.5h10.5a.25.25 0 0 1 .25.25v14.5a.25.25 0 0 1-.25.25H6.75a.25.25 0 0 1-.25-.25V4.75a.25.25 0 0 1 .25-.25ZM7.5 6.75a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1-.75-.75ZM7.5 9.75a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1-.75-.75ZM7.5 12.75a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75Z"/>
               </svg>
               Upcoming Tasks
@@ -97,12 +97,12 @@ function UpcomingAppointmentsView({ appointments }: { appointments: Appointment[
           </div>
           <div className="text-[var(--fg)]/70">{sorted.length} items</div>
         </div>
-        <div className="grid grid-cols-1 px-3 py-2 text-xs font-semibold text-[var(--fg)]/70">
+        <div className="grid grid-cols-1 px-4 py-2 text-sm font-semibold text-[var(--fg)]/70">
           <span>NAME</span>
         </div>
         <ul className="divide-y divide-red-500/15">
           {sorted.length === 0 ? (
-            <li className="px-3 py-3 text-sm text-[var(--fg)]/70">No items</li>
+            <li className="px-4 py-4 text-base text-[var(--fg)]/70">No items</li>
           ) : (
             sorted.map((apt) => {
               const isToday = apt.date === new Date().toISOString().split('T')[0];
@@ -113,10 +113,10 @@ function UpcomingAppointmentsView({ appointments }: { appointments: Appointment[
               });
 
               return (
-                <li key={apt.id} className="px-3 py-2">
+                <li key={apt.id} className="px-4 py-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm text-[var(--fg)]">{apt.title}</span>
-                    <span className="whitespace-nowrap text-xs text-[var(--fg)]/70">
+                    <span className="truncate text-base text-[var(--fg)]">{apt.title}</span>
+                    <span className="whitespace-nowrap text-sm text-[var(--fg)]/70">
                       {dateLabel} · {apt.start} · {apt.durationMin}m
                     </span>
                   </div>
@@ -135,7 +135,7 @@ function UrgentTodosView({ todos, onToggle }: { todos: UrgentTodo[]; onToggle: (
   if (todos.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-[var(--fg)]/50">No urgent todos</p>
+        <p className="text-base text-[var(--fg)]/50">No urgent todos</p>
       </div>
     );
   }
@@ -153,28 +153,28 @@ function UrgentTodosView({ todos, onToggle }: { todos: UrgentTodo[]; onToggle: (
   return (
     <ul className="divide-y divide-[var(--border)]">
       {sorted.map((todo) => (
-        <li key={todo.id} className="flex items-center gap-3 px-4 py-3">
+        <li key={todo.id} className="flex items-center gap-3 px-4 py-4">
           <button
             onClick={() => onToggle(todo.id)}
-            className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 border-[var(--fg)]/30 transition-colors hover:border-red-500"
+            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded border-2 border-[var(--fg)]/30 transition-colors hover:border-red-500"
             aria-label={`Mark ${todo.title} as done`}
           >
             {todo.done && (
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-red-500">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 text-red-500">
                 <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clipRule="evenodd" />
               </svg>
             )}
           </button>
           <div className="flex-1">
-            <p className="text-sm text-[var(--fg)]">{todo.title}</p>
+            <p className="text-base text-[var(--fg)]">{todo.title}</p>
             {todo.dueAt && (
-              <p className="mt-0.5 text-xs text-[var(--fg)]/50">
+              <p className="mt-0.5 text-sm text-[var(--fg)]/50">
                 Due: {new Date(todo.dueAt).toLocaleDateString()}
               </p>
             )}
           </div>
           <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+            className={`rounded-full px-2.5 py-1 text-sm font-medium ${
               todo.priority === "high"
                 ? "bg-red-500/20 text-red-400"
                 : todo.priority === "medium"
