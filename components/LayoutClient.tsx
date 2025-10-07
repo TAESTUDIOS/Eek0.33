@@ -11,13 +11,13 @@ import GestureGate from "@/components/security/GestureGate";
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isWidgetPage = pathname === "/widget";
+  const isWidgetPage = pathname === "/widget" || pathname === "/widget-urgents";
 
   return (
     <>
       <ThemeClient />
       {isWidgetPage ? (
-        // Widget page bypasses GestureGate and has no sidebar/layout
+        // Widget pages bypass GestureGate and have no sidebar/layout
         children
       ) : (
         <GestureGate>
