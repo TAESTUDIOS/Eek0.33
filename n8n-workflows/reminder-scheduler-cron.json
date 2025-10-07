@@ -1,0 +1,274 @@
+{
+  "name": "PSA Reminder Scheduler (Cron-Based)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "* * * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Every Minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, task, appointment_date, appointment_start, offset_minutes, notification_time, metadata\nFROM reminders\nWHERE status = 'pending'\n  AND notification_time <= NOW() + INTERVAL '1 minute'\n  AND notification_time > NOW() - INTERVAL '1 minute'\nORDER BY notification_time ASC\nLIMIT 50;",
+        "options": {}
+      },
+      "id": "query-due-reminders",
+      "name": "Query Due Reminders",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "3",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.length }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "check-has-reminders",
+      "name": "Has Reminders?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {},
+      "id": "split-reminders",
+      "name": "Split Into Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format reminder data for notification\nconst item = $input.item.json;\n\nconst task = item.task || 'Task';\nconst appointmentDate = item.appointment_date;\nconst appointmentStart = item.appointment_start;\nconst offsetMinutes = item.offset_minutes || 0;\nconst metadata = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : (item.metadata || {});\n\n// Format time display\nconst reminderLabel = offsetMinutes === 0 ? 'now' : \n                      offsetMinutes >= 60 ? `${offsetMinutes / 60}h before` : \n                      `${offsetMinutes}m before`;\n\nreturn {\n  id: item.id,\n  task,\n  appointmentDate,\n  appointmentStart,\n  offsetMinutes,\n  reminderLabel,\n  metadata,\n  notificationTime: item.notification_time\n};"
+      },
+      "id": "format-reminder",
+      "name": "Format Reminder Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "title": "⏰ {{ $json.task }}",
+        "text": "{{ $json.reminderLabel }}\nStarts at {{ $json.appointmentStart }}",
+        "sound": "default",
+        "input": {
+          "text": "Quick note"
+        }
+      },
+      "id": "send-pushcut-notification",
+      "name": "Send Pushcut Notification",
+      "type": "n8n-nodes-base.pushcut",
+      "typeVersion": 1,
+      "position": [1250, 150],
+      "credentials": {
+        "pushcutApi": {
+          "id": "1",
+          "name": "Pushcut API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PSA_APP_URL }}/api/inject-ritual",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "role",
+              "value": "ritual"
+            },
+            {
+              "name": "text",
+              "value": "⏰ Reminder: {{ $json.task }} starts at {{ $json.appointmentStart }}"
+            },
+            {
+              "name": "ritualId",
+              "value": "reminder-{{ $json.id }}"
+            },
+            {
+              "name": "buttons",
+              "value": "=[\"Done\", \"Snooze 10m\", \"Dismiss\"]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "inject-to-chat",
+      "name": "Inject to Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 250],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "2",
+          "name": "PSA Basic Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE reminders\nSET status = 'sent',\n    sent_at = NOW()\nWHERE id = {{ $json.id }};",
+        "options": {}
+      },
+      "id": "mark-as-sent",
+      "name": "Mark as Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [1450, 200],
+      "credentials": {
+        "postgres": {
+          "id": "3",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "no-op",
+      "name": "No Reminders Due",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [850, 400]
+    }
+  ],
+  "connections": {
+    "Every Minute": {
+      "main": [
+        [
+          {
+            "node": "Query Due Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Due Reminders": {
+      "main": [
+        [
+          {
+            "node": "Has Reminders?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Reminders?": {
+      "main": [
+        [
+          {
+            "node": "Split Into Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Reminders Due",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Items": {
+      "main": [
+        [
+          {
+            "node": "Format Reminder Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Reminder Data": {
+      "main": [
+        [
+          {
+            "node": "Send Pushcut Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Inject to Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Pushcut Notification": {
+      "main": [
+        [
+          {
+            "node": "Mark as Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inject to Chat": {
+      "main": [
+        [
+          {
+            "node": "Mark as Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark as Sent": {
+      "main": [
+        [
+          {
+            "node": "Split Into Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-10-02T18:54:48.000Z",
+  "versionId": "1"
+}

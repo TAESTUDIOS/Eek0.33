@@ -1,0 +1,228 @@
+{
+  "name": "PSA Reminder Storage (for Cron)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ntf",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-receiver",
+      "name": "Webhook - Store Reminder",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "ntf"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.task }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.body.date }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.body.start }}",
+              "operation": "isNotEmpty"
+            }
+          ],
+          "number": [
+            {
+              "value1": "={{ $json.body.offsetMinutes }}",
+              "operation": "largerEqual",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate notification time from appointment details\nconst task = $input.item.json.body.task;\nconst date = $input.item.json.body.date; // YYYY-MM-DD\nconst start = $input.item.json.body.start; // HH:mm\nconst offsetMinutes = $input.item.json.body.offsetMinutes || 0;\nconst source = $input.item.json.body.source || 'unknown';\nconst appointmentId = $input.item.json.body.appointmentId || null;\n\n// Parse appointment datetime\nconst appointmentDateTime = new Date(`${date}T${start}:00`);\n\n// Calculate notification time (subtract offset)\nconst notificationTime = new Date(appointmentDateTime.getTime() - (offsetMinutes * 60 * 1000));\n\n// Check if notification time is in the past\nconst now = new Date();\nconst isPast = notificationTime < now;\n\n// Prepare metadata\nconst metadata = {\n  source,\n  appointmentId,\n  createdAt: now.toISOString()\n};\n\nreturn {\n  task,\n  appointmentDate: date,\n  appointmentStart: start,\n  offsetMinutes,\n  notificationTime: notificationTime.toISOString(),\n  appointmentDateTime: appointmentDateTime.toISOString(),\n  isPast,\n  metadata: JSON.stringify(metadata),\n  status: isPast ? 'expired' : 'pending'\n};"
+      },
+      "id": "calculate-times",
+      "name": "Calculate Times",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isPast }}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "check-future",
+      "name": "Is Future?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "reminders",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "task": "={{ $json.task }}",
+            "appointment_date": "={{ $json.appointmentDate }}",
+            "appointment_start": "={{ $json.appointmentStart }}",
+            "offset_minutes": "={{ $json.offsetMinutes }}",
+            "notification_time": "={{ $json.notificationTime }}",
+            "status": "={{ $json.status }}",
+            "metadata": "={{ $json.metadata }}"
+          }
+        },
+        "options": {
+          "queryBatching": "single"
+        }
+      },
+      "id": "insert-reminder",
+      "name": "Insert Reminder",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [1050, 100],
+      "credentials": {
+        "postgres": {
+          "id": "3",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"stored\": true, \"notificationTime\": $json.notificationTime, \"status\": $json.status } }}"
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": false, \"error\": \"Reminder time is in the past\", \"notificationTime\": $json.notificationTime } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-past",
+      "name": "Respond Past",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": false, \"error\": \"Invalid input. Required: task, date, start, offsetMinutes\" } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-invalid",
+      "name": "Respond Invalid",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Store Reminder": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Calculate Times",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Invalid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Times": {
+      "main": [
+        [
+          {
+            "node": "Is Future?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Future?": {
+      "main": [
+        [
+          {
+            "node": "Insert Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Past",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Reminder": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-10-02T18:54:48.000Z",
+  "versionId": "1"
+}

@@ -1,0 +1,305 @@
+/* styles/globals.css */
+/* Global styles and Tailwind layers for the PSA */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #ffffff;
+  --fg: #111827;
+  --header-h: 56px; /* mobile header height */
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* Compact typography: reduce base font size globally */
+html { font-size: 14px; }
+
+a {
+  text-underline-offset: 2px;
+}
+
+/* Small polish: focus ring and fade-in animation */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fade-in 180ms ease-out;
+}
+
+@keyframes chuckle-bounce {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-2px) rotate(-5deg) scale(1.02);
+  }
+  50% {
+    transform: translateY(1px) rotate(4deg) scale(0.99);
+  }
+  75% {
+    transform: translateY(-1px) rotate(-3deg) scale(1.01);
+  }
+}
+
+.chuckle-motion {
+  animation: chuckle-bounce 1800ms ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes wave-hello {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(14deg);
+  }
+  40% {
+    transform: rotate(-10deg);
+  }
+  60% {
+    transform: rotate(12deg);
+  }
+  80% {
+    transform: rotate(-6deg);
+  }
+}
+
+.wave-motion {
+  animation: wave-hello 1600ms ease-in-out infinite;
+  transform-origin: 75% 75%;
+}
+
+@keyframes sleepy-zzz {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) translateX(4px) scale(0.85) rotate(-6deg);
+  }
+  20% {
+    opacity: 0.95;
+  }
+  60% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-26px) translateX(-6px) scale(1.08) rotate(5deg);
+  }
+}
+
+.sleepy-z {
+  animation: sleepy-zzz 2000ms ease-in-out infinite;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 10px rgba(48, 108, 220, 0.4);
+}
+
+/* Hide scrollbars on mobile nav scrollers */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Smooth touch scrolling */
+.touch-scroll { -webkit-overflow-scrolling: touch; }
+
+/* Respect iOS home indicator safe area */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Global dark defaults for form controls (fallback for unstyled elements) */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #111213; /* align with --surface-1 */
+  color: #e5e7eb; /* light grey */
+  border-color: rgba(255,255,255,0.08); /* var(--border) */
+}
+.dark button {
+  border-color: rgba(255,255,255,0.08);
+}
+
+/* Graphite theme tokens (light/dark) */
+:root {
+  /* Very dark neutral greys (no blue tint) */
+  --surface-0: #0b0b0c; /* app background */
+  --surface-1: #111213; /* elevated surfaces */
+  --surface-2: #171819; /* higher elevation */
+  --border: rgba(255,255,255,0.08);
+  --fg: #e5e7eb; /* text (light grey/white) */
+  --muted: #a1a1aa; /* muted text (zinc-400) */
+  --accent: #f59e0b; /* orange-500 */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: var(--surface-0);
+  }
+}
+
+.dark {
+  --bg: var(--surface-0);
+}
+
+::selection {
+  background: rgba(245, 158, 11, 0.28); /* orange/30 */
+  color: #ffffff;
+}
+
+/* Subtle scrollbars on desktop */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-track { background: transparent; }
+/* Modern font + typography polish */
+html, body {
+  /* Global typography: SF Mono-first stack (with cross-platform fallbacks) */
+  font-family: "SF Mono", ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  letter-spacing: 0.01em;
+  line-height: 1.48;
+}
+
+/* -------------------------------------------------------
+   3D Cards & Depth Utilities
+   These classes are referenced throughout components (e.g., shadow-subtle, shadow-elevated)
+-------------------------------------------------------- */
+.shadow-subtle {
+  /* Multi-layer shadow for soft elevation */
+  box-shadow:
+    0 0.5px 0 rgba(0,0,0,0.35),             /* hairline edge */
+    0 2px 4px rgba(0,0,0,0.24),              /* soft base */
+    0 8px 20px rgba(0,0,0,0.28);             /* room shadow */
+}
+
+.shadow-elevated {
+  /* Stronger elevation for hero cards */
+  box-shadow:
+    0 1px 0 rgba(0,0,0,0.36),
+    0 4px 8px rgba(0,0,0,0.28),
+    0 14px 34px rgba(0,0,0,0.35);
+}
+
+.hover\:lift:hover {
+  transform: translateY(-1.5px);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+/* Optional subtle inner highlight (applies when element has border) */
+.has-inner-highlight {
+  position: relative;
+}
+.has-inner-highlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  /* faint top highlight for 3D rim */
+  background: linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0));
+}
+
+/* Accent link color */
+a { color: var(--accent); }
+a:hover { color: #fbbf24; /* orange-400 on hover */ }
+
+/* -------------------------------------------------------
+   Compact mode: densify spacing while keeping readability
+   Applied when <html> has class="compact" (set by ThemeClient)
+-------------------------------------------------------- */
+.compact { font-size: 13px; }
+.compact body { line-height: 1.42; }
+
+/* Slightly smaller headings */
+.compact h1 { font-size: 1.125rem; }
+.compact h2 { font-size: 1rem; }
+.compact h3 { font-size: 0.95rem; }
+
+/* Tighter gaps common in app components */
+.compact .gap-3 { gap: 0.5rem !important; }
+.compact .gap-2 { gap: 0.375rem !important; }
+
+/* Shorter top-bar button heights */
+.compact .h-9 { height: 2.1rem !important; }
+.compact .h-7 { height: 1.6rem !important; }
+
+/* Trim paddings on common utility classes used */
+.compact .px-3 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+.compact .px-2 { padding-left: 0.375rem !important; padding-right: 0.375rem !important; }
+.compact .py-2 { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+.compact .p-2 { padding: 0.375rem !important; }
+.compact .p-3 { padding: 0.5rem !important; }
+
+/* Inputs */
+.compact input[type="text"],
+.compact input[type="date"],
+.compact input[type="number"],
+.compact select,
+.compact textarea {
+  height: 2.0rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+/* Details/summary paddings */
+.compact summary { padding-top: 0.4rem; padding-bottom: 0.4rem; }
+.compact details > div, .compact details > section { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+
+/* Density tiers: explicit classes for clarity */
+.density-compact { font-size: 13px; }
+.density-compact body { line-height: 1.42; }
+
+.density-ultra { font-size: 12.5px; }
+.density-ultra body { line-height: 1.38; }
+.density-ultra h1 { font-size: 1.05rem; }
+.density-ultra h2 { font-size: 0.95rem; }
+.density-ultra h3 { font-size: 0.9rem; }
+.density-ultra .gap-3 { gap: 0.4rem !important; }
+.density-ultra .gap-2 { gap: 0.3rem !important; }
+.density-ultra .h-9 { height: 2.0rem !important; }
+.density-ultra .h-7 { height: 1.5rem !important; }
+.density-ultra .px-3 { padding-left: 0.45rem !important; padding-right: 0.45rem !important; }
+.density-ultra .px-2 { padding-left: 0.3rem !important; padding-right: 0.3rem !important; }
+.density-ultra .py-2 { padding-top: 0.3rem !important; padding-bottom: 0.3rem !important; }
+.density-ultra .p-2 { padding: 0.32rem !important; }
+.density-ultra .p-3 { padding: 0.45rem !important; }
+.density-ultra input[type="text"],
+.density-ultra input[type="date"],
+.density-ultra input[type="number"],
+.density-ultra select,
+.density-ultra textarea {
+  height: 1.9rem;
+  padding-top: 0.22rem;
+  padding-bottom: 0.22rem;
+}
+.density-ultra summary { padding-top: 0.35rem; padding-bottom: 0.35rem; }
+.density-ultra details > div, .density-ultra details > section { padding-top: 0.45rem; padding-bottom: 0.45rem; }
+
+/* Ultra density: fine-tune typography and layout for readability */
+.density-ultra .text-sm { font-size: 0.85rem !important; }
+.density-ultra .text-xs { font-size: 0.72rem !important; }
+.density-ultra .space-y-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.35rem * calc(1 - var(--tw-space-y-reverse))) !important;
+  margin-bottom: calc(0.35rem * var(--tw-space-y-reverse)) !important;
+}
+.density-ultra .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse))) !important;
+  margin-bottom: calc(0.5rem * var(--tw-space-y-reverse)) !important;
+}
+.density-ultra .pb-2 { padding-bottom: 0.35rem !important; }
+.density-ultra .w-16 { width: 3rem !important; }
+.density-ultra [class*="min-w-[150px]"] { min-width: 120px !important; }

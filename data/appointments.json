@@ -1,0 +1,151 @@
+{
+  "items": [
+    {
+      "id": "appt_uxt1eni",
+      "title": "test",
+      "date": "2025-09-16",
+      "start": "09:00",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_t00nj4y",
+      "title": "dfhdfh",
+      "date": "2025-09-20",
+      "start": "09:00",
+      "durationMin": 30,
+      "notes": "dfhdfh"
+    },
+    {
+      "id": "appt_2gwrphn",
+      "title": "test",
+      "date": "2025-09-21",
+      "start": "10:00",
+      "durationMin": 30,
+      "notes": "test"
+    },
+    {
+      "id": "appt_lrbn3bl",
+      "title": "clean car",
+      "date": "2025-09-21",
+      "start": "14:05",
+      "durationMin": 100,
+      "notes": "with soap"
+    },
+    {
+      "id": "appt_lowgahl",
+      "title": "BuurtzorgT",
+      "date": "2025-09-22",
+      "start": "10:00",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_iyvzp66",
+      "title": "test1",
+      "date": "2025-09-23",
+      "start": "09:00",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_q3uexhr",
+      "title": "test2",
+      "date": "2025-09-23",
+      "start": "09:30",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_l41iu0o",
+      "title": "fgjfgj",
+      "date": "2025-09-25",
+      "start": "09:00",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_bnjbeah",
+      "title": "fgdhfgjfgj",
+      "date": "2025-09-25",
+      "start": "09:00",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_ybk03bs",
+      "title": "fgjfgjfg",
+      "date": "2025-09-25",
+      "start": "09:00",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_nqmtir7",
+      "title": "dfghkjdhfgkhgd",
+      "date": "2025-09-25",
+      "start": "09:00",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_2puupke",
+      "title": "dtyiytidtitdk",
+      "date": "2025-09-25",
+      "start": "09:00",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_20ylsi0",
+      "title": "dfghkfhgkghf",
+      "date": "2025-09-25",
+      "start": "09:00",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_djirx70",
+      "title": "fghkgfhdkghfk",
+      "date": "2025-09-25",
+      "start": "09:00",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_weczepz",
+      "title": "tyiytiteyi",
+      "date": "2025-09-25",
+      "start": "23:00",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_m0r3t69",
+      "title": "fgjhsdfgjfd",
+      "date": "2025-09-25",
+      "start": "03:02",
+      "durationMin": 30
+    },
+    {
+      "id": "appt_3zkl19r",
+      "title": "this",
+      "date": "2025-09-26",
+      "start": "21:27",
+      "durationMin": 30,
+      "notes": "[P:medium]"
+    },
+    {
+      "id": "appt_b6tlhl2",
+      "title": "is",
+      "date": "2025-09-26",
+      "start": "22:27",
+      "durationMin": 30,
+      "notes": "[P:low]"
+    },
+    {
+      "id": "appt_bej7ho2",
+      "title": "cool",
+      "date": "2025-09-26",
+      "start": "23:28",
+      "durationMin": 30,
+      "notes": "[P:high]"
+    },
+    {
+      "id": "appt_x71jo13",
+      "title": "dfgjfg",
+      "date": "2025-09-27",
+      "start": "10:25",
+      "durationMin": 30,
+      "notes": "[P:medium]"
+    }
+  ]
+}

@@ -1,0 +1,331 @@
+{
+  "name": "PSA Reminder Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ntf",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-receiver",
+      "name": "Webhook - Receive Reminder Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "ntf"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.task }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.body.date }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.body.start }}",
+              "operation": "isNotEmpty"
+            }
+          ],
+          "number": [
+            {
+              "value1": "={{ $json.body.offsetMinutes }}",
+              "operation": "largerEqual",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate the exact notification time\nconst task = $input.item.json.body.task;\nconst date = $input.item.json.body.date; // YYYY-MM-DD\nconst start = $input.item.json.body.start; // HH:mm\nconst offsetMinutes = $input.item.json.body.offsetMinutes || 0;\nconst source = $input.item.json.body.source || 'unknown';\n\n// Parse appointment datetime\nconst appointmentDateTime = new Date(`${date}T${start}:00`);\n\n// Calculate notification time (subtract offset)\nconst notificationTime = new Date(appointmentDateTime.getTime() - (offsetMinutes * 60 * 1000));\n\n// Check if notification time is in the past\nconst now = new Date();\nconst isPast = notificationTime < now;\n\n// Calculate delay in milliseconds and seconds\nconst delayMs = notificationTime.getTime() - now.getTime();\nconst delaySeconds = Math.round(delayMs / 1000);\n\n// Format times for display\nconst formatTime = (d) => {\n  return d.toLocaleString('en-US', {\n    year: 'numeric',\n    month: 'short',\n    day: 'numeric',\n    hour: '2-digit',\n    minute: '2-digit',\n    hour12: false\n  });\n};\n\nreturn {\n  task,\n  date,\n  start,\n  offsetMinutes,\n  source,\n  appointmentDateTime: appointmentDateTime.toISOString(),\n  notificationTime: notificationTime.toISOString(),\n  notificationTimeFormatted: formatTime(notificationTime),\n  appointmentTimeFormatted: formatTime(appointmentDateTime),\n  isPast,\n  delayMs,\n  delaySeconds,\n  delayMinutes: Math.round(delayMs / 60000),\n  scheduledFor: notificationTime.toISOString(),\n  reminderLabel: offsetMinutes === 0 ? 'now' : \n                 offsetMinutes >= 60 ? `${offsetMinutes / 60}h before` : \n                 `${offsetMinutes}m before`\n};"
+      },
+      "id": "calculate-schedule",
+      "name": "Calculate Schedule Time",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isPast }}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "check-past",
+      "name": "Is Future Reminder?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.delayMs }}",
+        "unit": "ms"
+      },
+      "id": "wait-until-time",
+      "name": "Wait Until Notification Time",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1050, 100]
+    },
+    {
+      "parameters": {
+        "title": "⏰ {{ $json.task }}",
+        "text": "{{ $json.reminderLabel }}\nStarts at {{ $json.start }}",
+        "sound": "default",
+        "input": {
+          "text": "Quick note"
+        }
+      },
+      "id": "send-pushcut",
+      "name": "Send Pushcut Notification",
+      "type": "n8n-nodes-base.pushcut",
+      "typeVersion": 1,
+      "position": [1250, 100],
+      "credentials": {
+        "pushcutApi": {
+          "id": "1",
+          "name": "Pushcut API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PSA_APP_URL }}/api/inject-ritual",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "role",
+              "value": "ritual"
+            },
+            {
+              "name": "text",
+              "value": "⏰ Reminder: {{ $json.task }} starts at {{ $json.start }}"
+            },
+            {
+              "name": "ritualId",
+              "value": "reminder-{{ $json.task }}"
+            },
+            {
+              "name": "buttons",
+              "value": "=[\"Done\", \"Snooze 10m\", \"Dismiss\"]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "inject-chat",
+      "name": "Inject Reminder to Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 200],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "2",
+          "name": "PSA Basic Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "table": "reminder_logs",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "task": "={{ $json.task }}",
+            "appointment_date": "={{ $json.date }}",
+            "appointment_start": "={{ $json.start }}",
+            "offset_minutes": "={{ $json.offsetMinutes }}",
+            "notification_time": "={{ $json.notificationTime }}",
+            "status": "sent",
+            "created_at": "={{ $now.toISO() }}"
+          }
+        }
+      },
+      "id": "log-reminder",
+      "name": "Log Reminder (Optional)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [1450, 150],
+      "credentials": {
+        "postgres": {
+          "id": "3",
+          "name": "PostgreSQL"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"scheduled\": true, \"notificationTime\": $json.notificationTime, \"reminderLabel\": $json.reminderLabel, \"delayMinutes\": $json.delayMinutes } }}"
+      },
+      "id": "respond-success",
+      "name": "Respond - Scheduled",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": false, \"error\": \"Reminder time is in the past\", \"notificationTime\": $json.notificationTime } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-past",
+      "name": "Respond - Past Time Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": false, \"error\": \"Invalid input. Required: task, date, start, offsetMinutes\" } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-invalid",
+      "name": "Respond - Invalid Input",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Receive Reminder Request": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Calculate Schedule Time",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Invalid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Schedule Time": {
+      "main": [
+        [
+          {
+            "node": "Is Future Reminder?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Future Reminder?": {
+      "main": [
+        [
+          {
+            "node": "Wait Until Notification Time",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond - Scheduled",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Past Time Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Until Notification Time": {
+      "main": [
+        [
+          {
+            "node": "Send Pushcut Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Inject Reminder to Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Pushcut Notification": {
+      "main": [
+        [
+          {
+            "node": "Log Reminder (Optional)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inject Reminder to Chat": {
+      "main": [
+        [
+          {
+            "node": "Log Reminder (Optional)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-10-02T18:54:48.000Z",
+  "versionId": "1"
+}

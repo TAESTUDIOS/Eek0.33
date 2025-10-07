@@ -1,0 +1,390 @@
+{
+  "name": "PSA Reminder Action Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reminder-action",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-action",
+      "name": "Webhook - Reminder Action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "reminder-action"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.action }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "validate-action",
+      "name": "Validate Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "Done",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "done"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "Snooze",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "snooze"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "Dismiss",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "dismiss"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-action",
+      "name": "Switch on Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle \"Done\" action\nconst task = $input.item.json.body.task || 'Task';\nconst ritualId = $input.item.json.body.ritualId || '';\n\nreturn {\n  action: 'done',\n  task,\n  ritualId,\n  response: `✅ Great! \"${task}\" marked as done.`,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "handle-done",
+      "name": "Handle Done",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle \"Snooze\" action - extract snooze duration\nconst task = $input.item.json.body.task || 'Task';\nconst action = $input.item.json.body.action || '';\nconst ritualId = $input.item.json.body.ritualId || '';\n\n// Parse snooze duration from action (e.g., \"Snooze 10m\")\nconst match = action.match(/(\\d+)\\s*m/i);\nconst snoozeMinutes = match ? parseInt(match[1]) : 10; // default 10 minutes\n\n// Calculate new notification time\nconst now = new Date();\nconst snoozeUntil = new Date(now.getTime() + (snoozeMinutes * 60 * 1000));\n\nreturn {\n  action: 'snooze',\n  task,\n  ritualId,\n  snoozeMinutes,\n  snoozeUntil: snoozeUntil.toISOString(),\n  delayMs: snoozeMinutes * 60 * 1000,\n  response: `⏰ Snoozed \"${task}\" for ${snoozeMinutes} minutes.`,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "handle-snooze",
+      "name": "Handle Snooze",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle \"Dismiss\" action\nconst task = $input.item.json.body.task || 'Task';\nconst ritualId = $input.item.json.body.ritualId || '';\n\nreturn {\n  action: 'dismiss',\n  task,\n  ritualId,\n  response: `🔕 \"${task}\" dismissed.`,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "handle-dismiss",
+      "name": "Handle Dismiss",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.delayMs }}",
+        "unit": "ms"
+      },
+      "id": "wait-snooze",
+      "name": "Wait Snooze Duration",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "title": "⏰ {{ $json.task }}",
+        "text": "Snooze ended - reminder!",
+        "sound": "default"
+      },
+      "id": "send-snooze-notification",
+      "name": "Send Snooze Notification",
+      "type": "n8n-nodes-base.pushcut",
+      "typeVersion": 1,
+      "position": [1250, 200],
+      "credentials": {
+        "pushcutApi": {
+          "id": "1",
+          "name": "Pushcut API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PSA_APP_URL }}/api/inject-ritual",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "role",
+              "value": "assistant"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.response }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "inject-response",
+      "name": "Inject Response to Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 100],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "2",
+          "name": "PSA Basic Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PSA_APP_URL }}/api/inject-ritual",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "role",
+              "value": "assistant"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.response }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "inject-dismiss-response",
+      "name": "Inject Dismiss Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 300],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "2",
+          "name": "PSA Basic Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"action\": $json.action, \"message\": $json.response } }}"
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": false, \"error\": \"Invalid action\" } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-invalid",
+      "name": "Respond Invalid",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Reminder Action": {
+      "main": [
+        [
+          {
+            "node": "Validate Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Action": {
+      "main": [
+        [
+          {
+            "node": "Switch on Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Invalid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch on Action": {
+      "main": [
+        [
+          {
+            "node": "Handle Done",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Snooze",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Dismiss",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Done": {
+      "main": [
+        [
+          {
+            "node": "Inject Response to Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Snooze": {
+      "main": [
+        [
+          {
+            "node": "Wait Snooze Duration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Dismiss": {
+      "main": [
+        [
+          {
+            "node": "Inject Dismiss Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Snooze Duration": {
+      "main": [
+        [
+          {
+            "node": "Send Snooze Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inject Response to Chat": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inject Dismiss Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-10-02T18:54:48.000Z",
+  "versionId": "1"
+}
