@@ -1,6 +1,6 @@
 // app/widget/page.tsx
-// Purpose: Widget-optimized page for upcoming tasks with code lock (333). No header, minimal UI for iPhone widgets.
-// This page bypasses the gesture lock.
+// Purpose: Widget-optimized page for upcoming tasks. No header, minimal UI for iPhone widgets.
+// This page is accessible without authentication.
 
 "use client";
 
@@ -8,31 +8,15 @@ import { useEffect, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import type { UrgentTodo, Appointment } from "@/lib/types";
 
-const CODE_LOCK = "333";
-const STORAGE_KEY = "psa.widget.unlocked";
-
 export default function WidgetPage() {
   const { urgentTodos, loadUrgentTodos, toggleUrgentDone } = useAppStore();
-  const [unlocked, setUnlocked] = useState(false);
-  const [code, setCode] = useState("");
-  const [error, setError] = useState(false);
   const [tab, setTab] = useState<"upcoming" | "urgent">("upcoming");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   useEffect(() => {
-    // Check if already unlocked in this session
-    const stored = sessionStorage.getItem(STORAGE_KEY);
-    if (stored === "true") {
-      setUnlocked(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (unlocked) {
-      loadUrgentTodos();
-      loadAppointments();
-    }
-  }, [unlocked, loadUrgentTodos]);
+    loadUrgentTodos();
+    loadAppointments();
+  }, [loadUrgentTodos]);
 
   const loadAppointments = async () => {
     try {
@@ -48,94 +32,6 @@ export default function WidgetPage() {
       console.error("Failed to load appointments:", err);
     }
   };
-
-  const handleButtonPress = (digit: string) => {
-    const newCode = code + digit;
-    setCode(newCode);
-    
-    if (newCode.length === 3) {
-      if (newCode === CODE_LOCK) {
-        setUnlocked(true);
-        sessionStorage.setItem(STORAGE_KEY, "true");
-        setError(false);
-      } else {
-        setError(true);
-        setTimeout(() => {
-          setCode("");
-          setError(false);
-        }, 1000);
-      }
-    }
-  };
-
-  const handleClear = () => {
-    setCode("");
-    setError(false);
-  };
-
-  // Code lock screen with button interface
-  if (!unlocked) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[var(--surface-0)]">
-        <div className="w-full max-w-xs px-6">
-          <div className="space-y-6">
-            <div className="text-center">
-              <h1 className="text-lg font-semibold text-[var(--fg)]">Widget Access</h1>
-              <p className="mt-1 text-sm text-[var(--fg)]/60">Enter 3-digit code</p>
-            </div>
-            
-            {/* Code display */}
-            <div className="flex justify-center gap-3">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className={`h-3 w-3 rounded-full transition-colors ${
-                    error
-                      ? "bg-red-500"
-                      : code.length > i
-                      ? "bg-blue-500"
-                      : "bg-[var(--fg)]/20"
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* Number pad */}
-            <div className="grid grid-cols-3 gap-3">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                <button
-                  key={num}
-                  onClick={() => handleButtonPress(String(num))}
-                  disabled={code.length >= 3}
-                  className="aspect-square rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-xl font-medium text-[var(--fg)] transition-colors hover:bg-[var(--surface-2)] active:scale-95 disabled:opacity-50"
-                >
-                  {num}
-                </button>
-              ))}
-              <button
-                onClick={handleClear}
-                className="aspect-square rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-sm font-medium text-[var(--fg)]/70 transition-colors hover:bg-[var(--surface-2)] active:scale-95"
-              >
-                Clear
-              </button>
-              <button
-                onClick={() => handleButtonPress("0")}
-                disabled={code.length >= 3}
-                className="aspect-square rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-xl font-medium text-[var(--fg)] transition-colors hover:bg-[var(--surface-2)] active:scale-95 disabled:opacity-50"
-              >
-                0
-              </button>
-              <div className="aspect-square" /> {/* Empty space */}
-            </div>
-
-            {error && (
-              <p className="text-center text-sm text-red-500">Incorrect code</p>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Widget content - appointments in upcoming, urgent todos in urgent tab
   const upcomingUrgent = urgentTodos.filter((t) => !t.done);
